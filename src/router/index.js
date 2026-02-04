@@ -1,15 +1,17 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import Style from '@/views/StyleView.vue'
 import Home from '@/views/HomeView.vue'
+import Login from '@/views/LoginView.vue'
+import StyleView from '@/views/StyleView.vue'
 
 const routes = [
   {
     meta: {
-      title: 'Select style',
+      title: 'Login',
     },
     path: '/',
-    name: 'style',
-    component: Style,
+    name: 'login',
+    component: Login,
   },
   {
     // Document title tag
@@ -45,30 +47,7 @@ const routes = [
     name: 'profile',
     component: () => import('@/views/ProfileView.vue'),
   },
-  {
-    meta: {
-      title: 'Ui',
-    },
-    path: '/ui',
-    name: 'ui',
-    component: () => import('@/views/UiView.vue'),
-  },
-  {
-    meta: {
-      title: 'Responsive layout',
-    },
-    path: '/responsive',
-    name: 'responsive',
-    component: () => import('@/views/ResponsiveView.vue'),
-  },
-  {
-    meta: {
-      title: 'Login',
-    },
-    path: '/login',
-    name: 'login',
-    component: () => import('@/views/LoginView.vue'),
-  },
+
   {
     meta: {
       title: 'Error',
@@ -85,6 +64,19 @@ const router = createRouter({
   scrollBehavior(to, from, savedPosition) {
     return savedPosition || { top: 0 }
   },
+})
+
+// Protection des routes - rediriger vers login si non authentifié
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true'
+  
+  if (to.path !== '/' && !isAuthenticated) {
+    next('/')
+  } else if (to.path === '/' && isAuthenticated) {
+    next('/dashboard')
+  } else {
+    next()
+  }
 })
 
 export default router

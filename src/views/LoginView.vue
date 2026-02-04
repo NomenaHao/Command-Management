@@ -1,7 +1,8 @@
 <script setup>
-import { reactive } from 'vue'
+import { reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { mdiAccount, mdiAsterisk } from '@mdi/js'
+import { useDarkModeStore } from '@/stores/darkMode.js'
 import SectionFullScreen from '@/components/SectionFullScreen.vue'
 import CardBox from '@/components/CardBox.vue'
 import FormCheckRadio from '@/components/FormCheckRadio.vue'
@@ -18,8 +19,16 @@ const form = reactive({
 })
 
 const router = useRouter()
+const darkModeStore = useDarkModeStore()
+
+// Activer le mode dark par défaut
+onMounted(() => {
+  darkModeStore.set(true)
+})
 
 const submit = () => {
+  // Sauvegarder l'état d'authentification
+  localStorage.setItem('isAuthenticated', 'true')
   router.push('/dashboard')
 }
 </script>
@@ -57,7 +66,6 @@ const submit = () => {
         <template #footer>
           <BaseButtons>
             <BaseButton type="submit" color="info" label="Login" />
-            <BaseButton to="/dashboard" color="info" outline label="Back" />
           </BaseButtons>
         </template>
       </CardBox>

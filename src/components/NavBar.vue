@@ -5,7 +5,6 @@ import { containerMaxW } from '@/config.js'
 import BaseIcon from '@/components/BaseIcon.vue'
 import NavBarMenuList from '@/components/NavBarMenuList.vue'
 import NavBarItemPlain from '@/components/NavBarItemPlain.vue'
-import PremiumVersionBadge from './PremiumVersionBadge.vue'
 
 defineProps({
   menu: {
@@ -41,7 +40,7 @@ const isMenuNavBarActive = ref(false)
         :class="[isMenuNavBarActive ? 'block' : 'hidden']"
       >
         <div class="flex items-center px-3 py-2">
-          <PremiumVersionBadge />
+         
         </div>
         <NavBarMenuList :menu="menu" @menu-click="menuClick" />
       </div>

@@ -17,7 +17,7 @@ import twoFactor from '@/routes/two-factor';
 import { send } from '@/routes/verification';
 import { darkModeKey, useDarkModeStore } from '@/stores/darkMode';
 import { Link, useForm, usePage } from '@inertiajs/vue3';
-import { mdiAccount, mdiAsterisk, mdiFormTextboxPassword, mdiGithub, mdiMail } from '@mdi/js';
+import { mdiAccount, mdiAsterisk, mdiFormTextboxPassword, mdiMail } from '@mdi/js';
 import { ref, watch } from 'vue';
 
 defineProps({
@@ -85,15 +85,7 @@ const submitDelete = () => {
   <LayoutAuthenticated>
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiAccount" title="Profile" main>
-        <BaseButton
-          href="https://github.com/justboil/admin-one-vue-tailwind"
-          target="_blank"
-          :icon="mdiGithub"
-          label="Star on GitHub"
-          color="contrast"
-          rounded-full
-          small
-        />
+        
       </SectionTitleLineWithButton>
 
       <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
