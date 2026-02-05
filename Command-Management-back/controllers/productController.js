@@ -50,14 +50,14 @@ exports.createProduct = async (req, res) => {
     
     let imagePath = null;
     if (req.file) {
-      imagePath = req.file.filename;
+      imagePath = `/public/uploads/${req.file.filename}`;
     }
     
     const newProduct = await Product.create({ 
       supplierId, 
       name, 
       description, 
-      price: parseInt(price, 10), 
+      price: price, 
       image: imagePath 
     });
     
@@ -85,18 +85,19 @@ exports.updateProduct = async (req, res) => {
     if (req.file) {
       // Supprimer l'ancienne image
       if (product.image) {
-        const oldImagePath = path.join(__dirname, '..', 'public', 'uploads', product.image);
+        const filename = product.image.split('/').pop();
+        const oldImagePath = path.join(__dirname, '..', 'public', 'uploads', filename);
         if (fs.existsSync(oldImagePath)) {
           fs.unlinkSync(oldImagePath);
         }
       }
-      imagePath = req.file.filename;
+      imagePath = `/public/uploads/${req.file.filename}`;
     }
     
     const updatedProduct = await Product.update(id, { 
       name, 
       description, 
-      price: parseInt(price, 10), 
+      price: price, 
       image: imagePath 
     });
     
@@ -121,7 +122,8 @@ exports.deleteProduct = async (req, res) => {
     
     // Supprimer l'image
     if (product.image) {
-      const imagePath = path.join(__dirname, '..', 'public', 'uploads', product.image);
+      const filename = product.image.split('/').pop();
+      const imagePath = path.join(__dirname, '..', 'public', 'uploads', filename);
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
       }

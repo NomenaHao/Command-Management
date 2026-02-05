@@ -10,8 +10,7 @@ const router = express.Router();
 // Inscription
 router.post('/register', [
   body('username').trim().isLength({ min: 3 }).matches(/^[a-zA-Z0-9_]+$/),
-  body('password').isLength({ min: 6 }),
-  body('name').trim().isLength({ min: 2 })
+  body('password').isLength({ min: 6 })
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -19,7 +18,7 @@ router.post('/register', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username, password, name } = req.body;
+    const { username, password } = req.body;
 
     // Vérifier si l'utilisateur existe déjà
     const existingUser = await User.findByUsername(username);
@@ -33,8 +32,7 @@ router.post('/register', [
     // Créer l'utilisateur
     const user = await User.create({
       username,
-      password: hashedPassword,
-      name
+      password: hashedPassword
     });
 
     // Générer le token
@@ -49,8 +47,7 @@ router.post('/register', [
       token,
       user: {
         id: user.id,
-        username: user.username,
-        name: user.name
+        username: user.username
       }
     });
   } catch (error) {
@@ -95,9 +92,20 @@ router.post('/login', [
       token,
       user: {
         id: user.id,
-        username: user.username,
-        name: user.name
+        username: user.username
       }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur: ' + error.message });
+  }
+});
+
+// Obtenir tous les utilisateurs (admin only)
+router.get('/all', authMiddleware, async (req, res) => {
+  try {
+    const users = await User.findAll();
+    res.json({
+      users: users
     });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur: ' + error.message });
@@ -115,8 +123,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
     res.json({
       user: {
         id: user.id,
-        username: user.username,
-        name: user.name
+        username: user.username
       }
     });
   } catch (error) {
@@ -126,7 +133,6 @@ router.get('/profile', authMiddleware, async (req, res) => {
 
 // Mettre à jour le profil
 router.put('/profile', authMiddleware, [
-  body('name').optional().trim().isLength({ min: 2 }),
   body('username').optional().trim().isLength({ min: 3 }).matches(/^[a-zA-Z0-9_]+$/)
 ], async (req, res) => {
   try {
@@ -135,10 +141,9 @@ router.put('/profile', authMiddleware, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, username } = req.body;
+    const { username } = req.body;
     const updateData = {};
 
-    if (name) updateData.name = name;
     if (username) {
       // Vérifier si le username est déjà utilisé
       const existingUser = await User.findByUsername(username);
@@ -153,10 +158,106 @@ router.put('/profile', authMiddleware, [
       message: 'Profil mis à jour avec succès',
       user: {
         id: user.id,
-        username: user.username,
-        name: user.name
+        username: user.username
       }
     });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur: ' + error.message });
+  }
+});
+
+// Créer un nouvel utilisateur (admin)
+router.post('/create', authMiddleware, [
+  body('username').trim().isLength({ min: 3 }).matches(/^[a-zA-Z0-9_]+$/),
+  body('password').isLength({ min: 6 })
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { username, password } = req.body;
+
+    // Vérifier si l'utilisateur existe déjà
+    const existingUser = await User.findByUsername(username);
+    if (existingUser) {
+      return res.status(400).json({ message: 'Ce nom d\'utilisateur existe déjà' });
+    }
+
+    // Hasher le mot de passe
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Créer l'utilisateur
+    const user = await User.create({
+      username,
+      password: hashedPassword
+    });
+
+    res.status(201).json({
+      message: 'Utilisateur créé avec succès',
+      user: {
+        id: user.id,
+        username: user.username
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur: ' + error.message });
+  }
+});
+
+// Mettre à jour un utilisateur (admin)
+router.put('/:id', authMiddleware, [
+  body('username').optional().trim().isLength({ min: 3 }).matches(/^[a-zA-Z0-9_]+$/)
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { username } = req.body;
+    const userId = req.params.id;
+    const updateData = {};
+
+    if (username) {
+      // Vérifier si le username est déjà utilisé
+      const existingUser = await User.findByUsername(username);
+      if (existingUser && existingUser.id !== parseInt(userId)) {
+        return res.status(400).json({ message: 'Ce nom d\'utilisateur est déjà utilisé' });
+      }
+      updateData.username = username;
+    }
+
+    const user = await User.update(userId, updateData);
+    res.json({
+      message: 'Utilisateur mis à jour avec succès',
+      user: {
+        id: user.id,
+        username: user.username
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur: ' + error.message });
+  }
+});
+
+// Supprimer un utilisateur (admin)
+router.delete('/:id', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    // Empêcher de supprimer le propre compte
+    if (parseInt(userId) === req.userId) {
+      return res.status(400).json({ message: 'Vous ne pouvez pas supprimer votre propre compte' });
+    }
+
+    const deleted = await User.delete(userId);
+    if (!deleted) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    res.json({ message: 'Utilisateur supprimé avec succès' });
   } catch (error) {
     res.status(500).json({ message: 'Erreur serveur: ' + error.message });
   }
