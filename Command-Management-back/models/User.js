@@ -3,14 +3,14 @@ const bcrypt = require('bcryptjs');
 
 class User {
   // Créer un utilisateur
-  static async create({ username, password }) {
+  static async create({ username, password, avatar }) {
     try {
       const query = `
-        INSERT INTO users (username, password)
-        VALUES (?, ?);
+        INSERT INTO users (username, password, avatar)
+        VALUES (?, ?, ?);
       `;
-      const [result] = await pool.execute(query, [username, password]);
-      return { id: result.insertId, username };
+      const [result] = await pool.execute(query, [username, password, avatar || null]);
+      return { id: result.insertId, username, avatar };
     } catch (error) {
       throw error;
     }
@@ -30,7 +30,7 @@ class User {
   // Trouver un utilisateur par ID
   static async findById(id) {
     try {
-      const query = 'SELECT id, username, created_at FROM users WHERE id = ?';
+      const query = 'SELECT id, username, avatar, created_at FROM users WHERE id = ?';
       const [rows] = await pool.execute(query, [id]);
       return rows[0] || null;
     } catch (error) {
@@ -52,6 +52,11 @@ class User {
       if (updateData.password) {
         fields.push('password = ?');
         values.push(updateData.password);
+      }
+
+      if (updateData.avatar) {
+        fields.push('avatar = ?');
+        values.push(updateData.avatar);
       }
       
       if (fields.length === 0) {
@@ -83,7 +88,7 @@ class User {
   // Obtenir tous les utilisateurs
   static async findAll() {
     try {
-      const query = 'SELECT id, username, created_at FROM users ORDER BY created_at DESC';
+      const query = 'SELECT id, username, avatar, created_at FROM users ORDER BY created_at DESC';
       const [rows] = await pool.execute(query);
       return rows;
     } catch (error) {

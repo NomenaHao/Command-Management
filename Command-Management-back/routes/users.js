@@ -2,8 +2,39 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { body, validationResult } = require('express-validator');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 const User = require('../models/User');
 const { authMiddleware } = require('../middleware/auth');
+
+// Configuration Multer pour les avatars
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadDir = path.join(__dirname, '../public/uploads/avatars');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Format d\'image non supporté'));
+    }
+  }
+});
 
 const router = express.Router();
 
@@ -167,7 +198,7 @@ router.put('/profile', authMiddleware, [
 });
 
 // Créer un nouvel utilisateur (admin)
-router.post('/create', authMiddleware, [
+router.post('/create', authMiddleware, upload.single('avatar'), [
   body('username').trim().isLength({ min: 3 }).matches(/^[a-zA-Z0-9_]+$/),
   body('password').isLength({ min: 6 })
 ], async (req, res) => {
@@ -189,16 +220,24 @@ router.post('/create', authMiddleware, [
     const hashedPassword = await bcrypt.hash(password, 10);
 
     // Créer l'utilisateur
-    const user = await User.create({
+    const userData = {
       username,
       password: hashedPassword
-    });
+    };
+
+    // Ajouter l'avatar si fourni
+    if (req.file) {
+      userData.avatar = `/public/uploads/avatars/${req.file.filename}`;
+    }
+
+    const user = await User.create(userData);
 
     res.status(201).json({
       message: 'Utilisateur créé avec succès',
       user: {
         id: user.id,
-        username: user.username
+        username: user.username,
+        avatar: user.avatar
       }
     });
   } catch (error) {
@@ -207,7 +246,7 @@ router.post('/create', authMiddleware, [
 });
 
 // Mettre à jour un utilisateur (admin)
-router.put('/:id', authMiddleware, [
+router.put('/:id', authMiddleware, upload.single('avatar'), [
   body('username').optional().trim().isLength({ min: 3 }).matches(/^[a-zA-Z0-9_]+$/)
 ], async (req, res) => {
   try {
@@ -216,7 +255,7 @@ router.put('/:id', authMiddleware, [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { username } = req.body;
+    const { username, password } = req.body;
     const userId = req.params.id;
     const updateData = {};
 
@@ -229,12 +268,22 @@ router.put('/:id', authMiddleware, [
       updateData.username = username;
     }
 
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      updateData.password = hashedPassword;
+    }
+
+    if (req.file) {
+      updateData.avatar = `/public/uploads/avatars/${req.file.filename}`;
+    }
+
     const user = await User.update(userId, updateData);
     res.json({
       message: 'Utilisateur mis à jour avec succès',
       user: {
         id: user.id,
-        username: user.username
+        username: user.username,
+        avatar: user.avatar
       }
     });
   } catch (error) {
