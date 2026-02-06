@@ -39,7 +39,7 @@ class User {
   // Trouver par ID
   static async findById(id) {
     try {
-      const query = 'SELECT id, username, role, created_at FROM users WHERE id = ?;';
+      const query = 'SELECT id, username, role, avatar, created_at FROM users WHERE id = ?;';
       const [rows] = await pool.execute(query, [id]);
       return rows[0];
     } catch (err) {
@@ -50,7 +50,7 @@ class User {
   // Obtenir tous les utilisateurs
   static async getAll() {
     try {
-      const query = 'SELECT id, username, role, created_at FROM users;';
+      const query = 'SELECT id, username, role, avatar, created_at FROM users;';
       const [rows] = await pool.execute(query);
       return rows;
     } catch (err) {
@@ -71,6 +71,34 @@ class User {
       return { id };
     } catch (err) {
       throw new Error(`Error deleting user: ${err.message}`);
+    }
+  }
+
+  // Mettre à jour le profil
+  static async updateProfile(id, { username, avatar }) {
+    try {
+      let query = 'UPDATE users SET ';
+      const params = [];
+      
+      if (username) {
+        query += 'username = ?';
+        params.push(username);
+      }
+      
+      if (avatar) {
+        if (params.length > 0) query += ', ';
+        query += 'avatar = ?';
+        params.push(avatar);
+      }
+      
+      query += ' WHERE id = ?;';
+      params.push(id);
+      
+      await pool.execute(query, params);
+      
+      return await this.findById(id);
+    } catch (err) {
+      throw new Error(`Error updating profile: ${err.message}`);
     }
   }
 }

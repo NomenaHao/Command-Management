@@ -154,7 +154,30 @@ router.get('/profile', authMiddleware, async (req, res) => {
     res.json({
       user: {
         id: user.id,
-        username: user.username
+        username: user.username,
+        avatar: user.avatar,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur serveur: ' + error.message });
+  }
+});
+
+// Alias pour /profile
+router.get('/me', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findById(req.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'Utilisateur non trouvé' });
+    }
+
+    res.json({
+      user: {
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar,
+        role: user.role
       }
     });
   } catch (error) {
@@ -163,7 +186,7 @@ router.get('/profile', authMiddleware, async (req, res) => {
 });
 
 // Mettre à jour le profil
-router.put('/profile', authMiddleware, [
+router.put('/profile', authMiddleware, upload.single('avatar'), [
   body('username').optional().trim().isLength({ min: 3 }).matches(/^[a-zA-Z0-9_]+$/)
 ], async (req, res) => {
   try {
@@ -184,12 +207,18 @@ router.put('/profile', authMiddleware, [
       updateData.username = username;
     }
 
+    // Si un fichier avatar a été uploadé
+    if (req.file) {
+      updateData.avatar = `/public/uploads/avatars/${req.file.filename}`;
+    }
+
     const user = await User.update(req.userId, updateData);
     res.json({
       message: 'Profil mis à jour avec succès',
       user: {
         id: user.id,
-        username: user.username
+        username: user.username,
+        avatar: user.avatar
       }
     });
   } catch (error) {

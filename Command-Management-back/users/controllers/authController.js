@@ -31,6 +31,7 @@ exports.login = async (req, res) => {
                 id: foundUser.id,
                 username: foundUser.username,
                 role: foundUser.role,
+                avatar: foundUser.avatar,
             },
         });
     } catch (error) {
@@ -84,6 +85,32 @@ exports.getAllUsers = async (req, res) => {
     try {
         const users = await User.getAll();
         res.json({users});
+    } catch (error) {
+        res.status(500).json({ message: 'Server error: ' + error.message });
+    }
+};
+
+// Update user profile
+exports.updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { username } = req.body;
+        let avatar = req.body.avatar;
+        
+        // Si un fichier a été uploadé
+        if (req.file) {
+            avatar = `/public/uploads/avatars/${req.file.filename}`;
+        }
+        
+        const updatedUser = await User.updateProfile(userId, { 
+            username: username || undefined, 
+            avatar: avatar || undefined 
+        });
+        
+        res.json({
+            message: 'Profile updated successfully',
+            user: updatedUser
+        });
     } catch (error) {
         res.status(500).json({ message: 'Server error: ' + error.message });
     }
